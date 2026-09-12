@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'xtream_service.dart';
 import 'home_screen.dart';
 
@@ -10,38 +12,43 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _serverController = TextEditingController();
+  final _urlController = TextEditingController();
   final _userController = TextEditingController();
   final _passController = TextEditingController();
   bool _isLoading = false;
-  String? _errorMessage;
 
   void _login() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final url = _urlController.text.trim();
+    final user = _userController.text.trim();
+    final pass = _passController.text.trim();
 
-    final service = XtreamService();
-    service.configure(
-      url: _serverController.text.trim(),
-      user: _userController.text.trim(),
-      pass: _passController.text.trim(),
-    );
+    if (url.isEmpty || user.isEmpty || pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى ملء جميع الحقول')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final service = context.read<XtreamService>();
+    service.configure(url, user, pass);
 
     try {
-      final auth = await service.authenticate();
-      if (auth['user_info']?['auth'] == 1) {
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => HomeScreen(service: service)),
-        );
-      } else {
-        setState(() => _errorMessage = 'بيانات الدخول غير صحيحة');
-      }
+      final authData = await service.authenticate();
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(accountData: authData),
+        ),
+      );
     } catch (e) {
-      setState(() => _errorMessage = 'تعذر الاتصال بالسيرفر، تأكد من صحة الرابط');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل تسجيل الدخول: ${e.toString()}')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -50,74 +57,105 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1015),
+      backgroundColor: const Color(0xFF0F0F14),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24.0),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
+            constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text('OTB', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900)),
-                    SizedBox(width: 6),
-                    Icon(Icons.play_arrow_rounded, color: Colors.redAccent, size: 36),
-                    SizedBox(width: 6),
-                    Text('IPTV', style: TextStyle(color: Colors.white70, fontSize: 32, fontWeight: FontWeight.bold)),
+                  children: [
+                    Text(
+                      'OTB',
+                      style: GoogleFonts.lexend(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.play_arrow_rounded, color: Colors.redAccent, size: 36),
+                    const SizedBox(width: 4),
+                    Text(
+                      'IPTV',
+                      style: GoogleFonts.lexend(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white70,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),
-                TextField(
-                  controller: _serverController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'رابط السيرفر (Server URL / Portal)',
-                    prefixIcon: Icon(Icons.dns, color: Colors.redAccent),
-                  ),
+                _buildTextField(
+                  controller: _urlController,
+                  hint: 'رابط السيرفر (Server URL / Portal)',
+                  icon: Icons.dns_rounded,
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                _buildTextField(
                   controller: _userController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'اسم المستخدم (Username)',
-                    prefixIcon: Icon(Icons.person, color: Colors.redAccent),
-                  ),
+                  hint: 'اسم المستخدم (Username)',
+                  icon: Icons.person_rounded,
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                _buildTextField(
                   controller: _passController,
-                  obscureText: true,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'كلمة المرور (Password)',
-                    prefixIcon: Icon(Icons.lock, color: Colors.redAccent),
-                  ),
+                  hint: 'كلمة المرور (Password)',
+                  icon: Icons.lock_rounded,
+                  isPassword: true,
                 ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
-                ],
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  height: 48,
+                  height: 50,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
                     onPressed: _isLoading ? null : _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE50914),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('تسجيل الدخول', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        : const Text(
+                            'تسجيل الدخول',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: isPassword,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: Colors.redAccent),
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38),
+        filled: true,
+        fillColor: const Color(0xFF1E202B),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
       ),
     );
