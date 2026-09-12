@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 class PlayerScreen extends StatefulWidget {
   final String streamUrl;
-  final String channelName;
+  final String title;
+  final bool isLive;
 
   const PlayerScreen({
     super.key,
     required this.streamUrl,
-    required this.channelName,
+    required this.title,
+    this.isLive = true,
   });
 
   @override
@@ -23,6 +26,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _player = Player();
     _controller = VideoController(_player);
     _player.open(Media(widget.streamUrl));
@@ -30,6 +34,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _player.dispose();
     super.dispose();
   }
@@ -41,32 +46,33 @@ class _PlayerScreenState extends State<PlayerScreen> {
       body: Stack(
         children: [
           Center(
-            child: Video(
-              controller: _controller,
-              controls: MaterialVideoControls,
-            ),
+            child: Video(controller: _controller),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.channelName,
+          Positioned(
+            top: 20,
+            left: 20,
+            right: 20,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 24),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      shadows: [Shadow(blurRadius: 8, color: Colors.black)],
+                      shadows: [Shadow(color: Colors.black, blurRadius: 4)],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
