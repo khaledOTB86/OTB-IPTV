@@ -2,11 +2,25 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 class XtreamService {
-  final Dio _dio = Dio();
+  late final Dio _dio;
 
   String serverUrl = '';
   String username = '';
   String password = '';
+
+  XtreamService() {
+    _dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 20),
+        headers: {
+          // تمويه السيرفر ليتعامل معنا كتطبيق IPTV رسمي معتمد
+          'User-Agent': 'IPTVSmartersPro/1.0.0 (Android; Mobile)',
+          'Accept': '*/*',
+        },
+      ),
+    );
+  }
 
   void configure(String url, String user, String pass) {
     String cleanUrl = url.trim();
@@ -37,7 +51,7 @@ class XtreamService {
         }
       }
     }
-    throw Exception('بيانات الدخول غير صحيحة أو السيرفر لا يستجيب');
+    throw Exception('بيانات الدخول غير صحيحة أو السيرفر يرفض الاتصال');
   }
 
   Future<List<dynamic>> getLiveCategories() async {
